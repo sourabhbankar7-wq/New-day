@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UPSC Final System</title>
+
+<style>
+body{margin:0;background:#0b0f17;color:#fff;font-family:sans-serif}
+h2{text-align:center;margin:10px}
+
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px}
+.q{padding:8px;background:#1c2433;border-radius:6px;font-size:11px}
+
+.card{background:#1c2433;margin:10px;padding:10px;border-radius:6px}
+select{width:100%;margin:2px}
+</style>
+</head>
+
+<body>
+
+<h2>UPSC Smart System</h2>
+
+<div class="grid" id="grid"></div>
+
+<div class="card" id="result"></div>
+<div class="card" id="breakdown"></div>
+
+<script>
+
+const subjects=["Polity","History","Geo","Economy","Env","Sci","Current","Misc"]
+
+const questions={}
+const answerKey={}
+
+for(let i=1;i<=100;i++){
+questions[i]={ans:null,conf:"skip",topic:"Polity"}
+}
+
+// ---------- RENDER ----------
+function render(){
+let g=document.getElementById("grid")
+g.innerHTML=""
+
+for(let i=1;i<=100;i++){
+let q=questions[i]
+
+let d=document.createElement("div")
+d.className="q"
+
+d.innerHTML=`
+Q${i}
+
+<select onchange="setConf(${i},this.value)">
+<option value="skip">Skip</option>
+<option value="sure">Sure</option>
+<option value="elim">2-opt</option>
+<option value="oneout">3-opt</option>
+</select>
+
+<select onchange="setAns(${i},this.value)">
+<option>Your</option><option>A</option><option>B</option><option>C</option><option>D</option>
+</select>
+
+<select onchange="setKey(${i},this.value)">
+<option>Key</option><option>A</option><option>B</option><option>C</option><option>D</option>
+</select>
+
+<select onchange="setTopic(${i},this.value)">
+${subjects.map(s=>`<option ${q.topic===s?'selected':''}>${s}</option>`)}
+</select>
+`
+
+g.appendChild(d)
+}
+}
+
+function setConf(i,v){questions[i].conf=v}
+function setAns(i,v){questions[i].ans=v}
+function setKey(i,v){answerKey[i]=v}
+function setTopic(i,v){questions[i].topic=v}
+
+// ---------- EVALUATE ----------
+function evaluate(){
+
+let correct=0,wrong=0,attempt=0
+let confMap={sure:0,elim:0,oneout:0,skip:0}
+let wrongByConf={sure:0,elim:0,oneout:0}
+let topicWeak={}
+
+subjects.forEach(s=>topicWeak[s]=0)
+
+for(let i=1;i<=100;i++){
+let q=questions[i]
+
+confMap[q.conf]++
+
+if(!q.ans || !answerKey[i]) continue
+
+attempt++
+
+if(q.ans===answerKey[i]){
+correct++
+}else{
+wrong++
+wrongByConf[q.conf]++
+topicWeak[q.topic]++
+}
+}
+
+// score
+let score = correct*2 - wrong*0.66
+let acc = attempt ? (correct/attempt*100).toFixed(1) : 0
+
+// main result
+document.getElementById("result").innerText=
+`Score: ${score.toFixed(1)}
+Correct: ${correct} | Wrong: ${wrong}
+Accuracy: ${acc}% | Attempt: ${attempt}`
+
+// breakdown
+let txt="Attempt Breakdown:\n"
+txt+=`Sure: ${confMap.sure}\n`
+txt+=`2-opt: ${confMap.elim}\n`
+txt+=`3-opt: ${confMap.oneout}\n`
+txt+=`Skip: ${confMap.skip}\n\n`
+
+txt+="Mistakes by Confidence:\n"
+txt+=`Sure wrong: ${wrongByConf.sure}\n`
+txt+=`2-opt wrong: ${wrongByConf.elim}\n`
+txt+=`3-opt wrong: ${wrongByConf.oneout}\n\n`
+
+txt+="Weak Topics:\n"
+let sorted = Object.entries(topicWeak).sort((a,b)=>b[1]-a[1])
+sorted.forEach(([s,v])=>{
+if(v>0) txt+=`${s}: ${v}\n`
+})
+
+document.getElementById("breakdown").innerText=txt
+}
+
+render()
+setInterval(evaluate,2000)
+
+</script>
+
+</body>
+</html>
